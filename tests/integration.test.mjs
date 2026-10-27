@@ -96,7 +96,8 @@ test('assistant grants limit reads, attendance and grades to assigned classes',a
  tenant='';cookie='';r=await call('/auth/register',{email:'assistant@test.com',password:'assistant password 123',name:'Assistant',workspace:'Personal'});cookie=r.cookie.split(';')[0];const assistant=cookie;
  assert.equal((await call('/assistant/redeem',{code})).status,200);const user=(await call('/auth/me')).content.user.id;tenant=school;
  r=await call('/overview');assert.equal(r.content.classes.length,1);assert.equal(r.content.classes[0].name,'Allowed');assert.equal(r.content.students.length,1);assert.equal(r.content.invoices.length,0);
- assert.equal((await call('/attendance',{lesson_id:l1,records:[{student_id:s1,status:'present'}]})).status,200);
+ assert.equal((await call('/attendance',{lesson_id:l1,records:[{student_id:s1,status:'present'}]})).status,403);
+ assert.equal((await call('/attendance?lesson='+l1)).content.length,0);
  assert.equal((await call('/attendance',{lesson_id:l2,records:[{student_id:s2,status:'present'}]})).status,403);
  assert.equal((await call('/attendance?lesson='+l2)).status,403);assert.equal((await call('/classes',{name:'Forbidden'})).status,403);assert.equal((await call('/reports')).status,403);assert.equal((await call('/export')).status,403);
  cookie=owner;assert.equal((await call('/assistants/revoke',{user_id:user})).status,200);cookie=assistant;assert.equal((await call('/overview')).status,403);

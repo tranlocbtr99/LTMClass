@@ -45,6 +45,7 @@ async function api(req,env){
  if(write&&['/account','/account/password','/account/recovery'].includes(path))await limited(db,'account:'+session.id,10);
  const recoveryResult=await recoverySettings(req,db,path,body,session);if(recoveryResult)return recoveryResult;
  const accountResult=await account(req,db,path,body,session,tenant);if(accountResult)return accountResult;
+ if(path==='/attendance'&&write&&(session.account_type!=='teacher'||!tenants.some(t=>t.id===tenant&&t.role==='owner')))fail('Chỉ giáo viên phụ trách lớp được điểm danh.',403);
  const assistantRedemption=await redeemAssistant(req,db,path,body,session);if(assistantRedemption)return assistantRedemption;
  const personalResult=await personal(req,db,path,body,session,tenant);if(personalResult)return personalResult;
  const learnerResult=await learning(req,db,path,body,session,tenant,env);if(learnerResult)return learnerResult;
