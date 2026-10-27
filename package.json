@@ -4,7 +4,7 @@
   "type": "module",
   "scripts": {
     "test": "node --test tests/*.test.mjs && python3 tests/schema_test.py && python3 tests/restore_test.py",
-    "check": "node --check apps/api/worker.js && node --check apps/api/teaching.js && node --check apps/web/app.js && node --check apps/web/teaching-ui.js && node --check apps/api/operations.js && node --check apps/web/operations-ui.js && node --check apps/api/assistants.js && node --check apps/web/sw.js && node --check apps/api/schedule.js && node --check apps/web/schedule-ui.js && node --check apps/api/accounts.js && node --check apps/web/account-ui.js && node --check apps/web/design-ui.js",
+    "check": "node --check apps/api/worker.js && node --check apps/api/teaching.js && node --check apps/web/app.js && node --check apps/web/teaching-ui.js && node --check apps/api/operations.js && node --check apps/web/operations-ui.js && node --check apps/api/assistants.js && node --check apps/web/sw.js && node --check apps/api/schedule.js && node --check apps/web/schedule-ui.js && node --check apps/api/accounts.js && node --check apps/web/account-ui.js && node --check apps/web/design-ui.js && node --check apps/api/recovery.js && node --check apps/web/auth-ui.js",
     "dev": "wrangler dev",
     "deploy": "wrangler deploy"
   },

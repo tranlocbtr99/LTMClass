@@ -26,17 +26,16 @@ Implemented teacher, student, guardian and class-scoped assistant workflows. Acc
 - HTTPS material links and optional external submission links; no R2 dependency. Source-file permissions remain managed at the external storage service.
 
 ## Validation
-26 automated checks: 20 Node security/workflow/UI checks, 5 schema checks and one full SQLite backup/restore exercise. Integration checks cover ownership isolation, cross-class assistant denial, guardian revocation, assignment grading, exam recovery/deadlines/snapshots, receipt deduplication, notification deduplication and scheduled expiry. These are local tests using real SQLite with a D1 adapter, not a claim of production load capacity.
+29 automated checks: 23 Node security/workflow/UI checks, 5 schema checks and one full SQLite backup/restore exercise. Integration checks cover ownership isolation, cross-class assistant denial, guardian revocation, assignment grading, exam recovery/deadlines/snapshots, receipt deduplication, notification deduplication and scheduled expiry. These are local tests using real SQLite with a D1 adapter, not a claim of production load capacity.
 
-Eight additive migrations, including external links and class overlap protection. Public authentication shell was inspected in Chrome. Signed-in browser workflows and mobile/PWA install checks remain incomplete. Local Wrangler preview is blocked by uv_interface_addresses in this environment.
+Ten additive migrations, including external links and class overlap protection. Public authentication shell was inspected in Chrome. Signed-in browser workflows and mobile/PWA install checks remain incomplete. Local Wrangler preview is blocked by uv_interface_addresses in this environment.
 
 ## External blockers and remaining release work
-- No email sender/domain configured: email verification, password-reset email and external notifications are not implemented. Existing email addresses are not verified.
+- No email sender/domain configured: email verification, password-reset email and external notifications remain unavailable. Email addresses are not verified. Offline single-use recovery codes are implemented; see account-recovery.md.
 - GitHub production environment secrets are not configured; existing validation and manual release workflows are committed. Current publication is performed directly with the session-supplied Cloudflare token, which is never committed.
 - Retention/deletion and consent workflows for actual child data need policy decisions and implementation before real student onboarding.
 - Global lesson/invoice reports use full aggregates, and the weekly calendar queries the requested date range, but main lists show at most 500 recent records; large-dataset pagination remains to implement.
 - Production load test and remote D1 disaster-recovery drill remain; local SQLite restore test does not replace these.
-- Student/guardian sign-up flow still uses personal workspace creation, to be streamlined.
 
 Full original project scope is not yet complete. No production records were fabricated for validation.
 
@@ -44,3 +43,5 @@ Full original project scope is not yet complete. No production records were fabr
 Teacher UI follows the supplied classroom-dashboard reference: light sidebar, teal actions, SVG line icons, colored statistics, today/upcoming agenda, class announcements, real attendance counts and monthly receipts. No demonstration metrics are injected into the published app. Responsive bottom navigation and compact cards are provided for phones. Timetable supports weekly time-grid, month and list views, with parallel event lanes for overlapping classes. Global class/student search and local class search are available. The application UI test covers these controls. Signed-in visual/browser QA remains limited; the local visual QA server cannot be reached by the remote browser.
 
 Assignments now accept an optional HTTPS Google Drive/resource link independently of the student submission link. Teachers can provide instructions, a resource link, or both. Existing assignments retain their content. Students can open the resource in a separate tab. File sharing permissions remain managed on Google Drive.
+
+Role-based signup now creates workspaces only for teachers. Students/guardians open their own portals directly. Public entry has two primary actions (login/signup), followed by a role picker during signup. Single-use recovery codes support password reset without an email provider; existing users generate a code in Account with their current password. A separate Liquid Glass stylesheet provides responsive translucent surfaces, rounded controls, mobile touch targets and reduced-motion fallbacks.

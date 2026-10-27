@@ -1,3 +1,4 @@
+import {recover,recoverySettings,makeRecoveryCode,recoveryHash} from './recovery.js';
 import {account,announcements} from './accounts.js';
 import {redeemAssistant,manageAssistants,assistantRequest} from './assistants.js';
 import {personal,operations} from './operations.js';
@@ -12,33 +13,37 @@ const cookie=(token,age)=>`ltm_session=${token}; Path=/; HttpOnly; Secure; SameS
 async function limited(db,key,limit){const now=Math.floor(Date.now()/1000);await query(db,'INSERT INTO rate_limits(key,count,reset_at) VALUES(?,1,?) ON CONFLICT(key) DO UPDATE SET count=CASE WHEN reset_at<? THEN 1 ELSE count+1 END, reset_at=CASE WHEN reset_at<? THEN excluded.reset_at ELSE reset_at END',key,now+900,now,now).run();const row=await one(db,'SELECT count FROM rate_limits WHERE key=?',key);if(row.count>limit)fail('Thử lại sau 15 phút.',429);}
 async function api(req,env){
  const url=new URL(req.url),path=url.pathname.replace('/api/v1',''),db=env.DB;
- if(path==='/health')return json({ok:true,version:'0.5.1'});
+ if(path==='/health')return json({ok:true,version:'0.6.0'});
  if(!db)fail('Cơ sở dữ liệu chưa được cấu hình.',503);
  const write=!['GET','HEAD'].includes(req.method);
  if(write&&!sameOrigin(req))fail('Nguồn yêu cầu không hợp lệ.',403);
  let body={};if(write){if(!req.headers.get('content-type')?.includes('application/json'))fail('Yêu cầu JSON.',415);const raw=await req.text();if(raw.length>300000)fail('Yêu cầu quá lớn.',413);try{body=JSON.parse(raw);}catch{fail('JSON không hợp lệ.');}if(!body||Array.isArray(body)||typeof body!=='object')fail('Dữ liệu không hợp lệ.');}
+ if(path==='/auth/recover'&&req.method==='POST'){await limited(db,'recovery-ip:'+(req.headers.get('CF-Connecting-IP')||'local'),5);await limited(db,'recovery-email:'+await hash(String(body.email||'').trim().toLowerCase()),5);return recover(db,body);}
  if(['/auth/register','/auth/login'].includes(path)&&req.method==='POST'){
   await limited(db,`auth:${req.headers.get('CF-Connecting-IP')||'local'}`,30);
   const email=text(body.email,254).toLowerCase();if(!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email))fail('Email không hợp lệ.');
   const password=text(body.password,128);if(password.length<12)fail('Mật khẩu cần ít nhất 12 ký tự.');
-  let user=await one(db,'SELECT * FROM users WHERE email=?',email);
+  let user=await one(db,'SELECT * FROM users WHERE email=?',email),recovery_code;
   if(path.endsWith('register')){
    if(user)fail('Không thể đăng ký email này.',409);
-   const id=uid(),tenant=uid(),name=text(body.name),workspace=text(body.workspace);
-   await db.batch([query(db,'INSERT INTO users(id,email,name,password) VALUES(?,?,?,?)',id,email,name,await passwordHash(password)),query(db,'INSERT INTO tenants(id,name,owner_id) VALUES(?,?,?)',tenant,workspace,id),query(db,"INSERT INTO members VALUES(?,?,'owner')",tenant,id)]);user={id,email,name};
+   const id=uid(),tenant=uid(),name=text(body.name),type=body.account_type||'teacher';if(!['teacher','student','guardian'].includes(type))fail('Vai trò tài khoản không hợp lệ.');recovery_code=makeRecoveryCode();
+   const stmts=[query(db,'INSERT INTO users(id,email,name,password,account_type) VALUES(?,?,?,?,?)',id,email,name,await passwordHash(password),type),query(db,'INSERT INTO account_recovery(user_id,token_hash) VALUES(?,?)',id,await recoveryHash(recovery_code))];
+   if(type==='teacher'){const workspace=text(body.workspace);stmts.push(query(db,'INSERT INTO tenants(id,name,owner_id) VALUES(?,?,?)',tenant,workspace,id),query(db,"INSERT INTO members VALUES(?,?,'owner')",tenant,id));}
+   await db.batch(stmts);user={id,email,name};
   }else if(!user||!await passwordMatches(password,user.password))fail('Email hoặc mật khẩu không đúng.',401);
   const token=uid()+uid(),expires=Math.floor(Date.now()/1000)+604800;
   await query(db,'INSERT INTO sessions VALUES(?,?,?)',await hash(token),user.id,expires).run();
-  return json({ok:true},200,{'Set-Cookie':cookie(token,604800)});
+  return json({ok:true,...(recovery_code?{recovery_code}:{})},200,{'Set-Cookie':cookie(token,604800)});
  }
  const token=req.headers.get('Cookie')?.match(/(?:^|;\s*)ltm_session=([^;]+)/)?.[1];
- const session=token&&await one(db,'SELECT u.id,u.name,u.email FROM sessions s JOIN users u ON u.id=s.user_id WHERE token_hash=? AND expires_at>?',await hash(token),Math.floor(Date.now()/1000));
+ const session=token&&await one(db,'SELECT u.id,u.name,u.email,u.account_type FROM sessions s JOIN users u ON u.id=s.user_id WHERE token_hash=? AND expires_at>?',await hash(token),Math.floor(Date.now()/1000));
  if(!session)fail('Vui lòng đăng nhập.',401);
  if(path==='/auth/logout'&&req.method==='POST'){await query(db,'DELETE FROM sessions WHERE token_hash=?',await hash(token)).run();return json({ok:true},200,{'Set-Cookie':cookie('',0)});}
  const tenants=await all(db,'SELECT t.id,t.name,m.role FROM tenants t JOIN members m ON t.id=m.tenant_id WHERE m.user_id=?',session.id);
  if(path==='/auth/me'&&req.method==='GET')return json({user:session,tenants});
  const tenant=url.searchParams.get('tenant');
- if(write&&['/account','/account/password'].includes(path))await limited(db,'account:'+session.id,10);
+ if(write&&['/account','/account/password','/account/recovery'].includes(path))await limited(db,'account:'+session.id,10);
+ const recoveryResult=await recoverySettings(req,db,path,body,session);if(recoveryResult)return recoveryResult;
  const accountResult=await account(req,db,path,body,session,tenant);if(accountResult)return accountResult;
  const assistantRedemption=await redeemAssistant(req,db,path,body,session);if(assistantRedemption)return assistantRedemption;
  const personalResult=await personal(req,db,path,body,session,tenant);if(personalResult)return personalResult;

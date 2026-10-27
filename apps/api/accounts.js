@@ -1,13 +1,13 @@
 import {uid,text,passwordMatches} from './security.js';
 const q=(db,sql,...a)=>db.prepare(sql).bind(...a),one=(db,sql,...a)=>q(db,sql,...a).first(),all=async(db,sql,...a)=>(await q(db,sql,...a).all()).results,json=v=>Response.json(v,{headers:{'Cache-Control':'no-store'}}),fail=(s,c=400)=>{throw Object.assign(Error(s),{status:c});};
 export async function account(req,db,path,body,user,tenant){
- if(path==='/account'&&req.method==='GET')return json(await one(db,'SELECT name,email,phone FROM users WHERE id=?',user.id));
+ if(path==='/account'&&req.method==='GET')return json(await one(db,'SELECT name,email,phone,account_type FROM users WHERE id=?',user.id));
  if(path==='/account'&&req.method==='PUT'){
   const stored=await one(db,'SELECT email,password FROM users WHERE id=?',user.id),email=text(body.email,254).toLowerCase(),name=text(body.name),phone=String(body.phone||'').trim().replace(/[\s().-]/g,'');
   if(!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email))fail('Gmail/email không hợp lệ.');if(phone&&!/^\+?[0-9]{8,15}$/.test(phone))fail('Số điện thoại cần 8–15 chữ số, có thể bắt đầu bằng +.');
   const changed=email!==stored.email.toLowerCase();if(changed&&!await passwordMatches(text(body.current_password,128),stored.password))fail('Mật khẩu xác nhận không đúng.',403);
   if(changed&&await one(db,'SELECT 1 FROM users WHERE email=? AND id<>?',email,user.id))fail('Email đã được sử dụng.',409);
-  const stmts=[q(db,'UPDATE users SET name=?,email=?,phone=? WHERE id=?',name,email,phone,user.id)];if(changed)stmts.push(q(db,'DELETE FROM sessions WHERE user_id=?',user.id));
+  const stmts=[q(db,'UPDATE users SET name=?,email=?,phone=? WHERE id=?',name,email,phone,user.id)];if(changed)stmts.push(q(db,'DELETE FROM sessions WHERE user_id=?',user.id),q(db,'DELETE FROM account_recovery WHERE user_id=?',user.id));
   try{await db.batch(stmts);}catch(e){if(e.message?.includes('UNIQUE'))fail('Email đã được sử dụng.',409);throw e;}return json({ok:true,reauthenticate:changed});
  }
  if(path==='/teacher-contact'&&req.method==='GET'){

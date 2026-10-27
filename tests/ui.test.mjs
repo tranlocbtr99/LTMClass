@@ -21,3 +21,10 @@ test('dashboard, compact menu, timetable builder and material links work through
  await document.querySelector('[data-page="announcements"]').onclick();document.querySelector('#add').click();const noticeForm=document.querySelector('#modal-content form');noticeForm.elements.class_id.value='c';noticeForm.elements.kind.value='schedule';noticeForm.elements.title.value='Đổi giờ học';noticeForm.elements.content.value='Học lúc 19:00';await noticeForm.onsubmit({preventDefault(){},target:noticeForm,submitter:noticeForm.querySelector('button:not([type])')});assert.equal(requests.find(r=>r.url.includes('/announcements')&&r.body).body.kind,'schedule');
  dom.window.close();
 });
+test('student and guardian logins open their portals without a teacher workspace',async()=>{
+ for(const type of ['student','guardian']){
+  const dom=new JSDOM(readFileSync('apps/web/index.html','utf8'),{url:'https://ltm.test/'});globalThis.window=dom.window;globalThis.document=dom.window.document;globalThis.FormData=dom.window.FormData;Object.defineProperty(globalThis,'navigator',{value:dom.window.navigator,configurable:true});const requests=[];
+  globalThis.fetch=async url=>{requests.push(url);if(url.includes('/auth/me'))return Response.json({user:{name:'Test user',account_type:type},tenants:[]});if(url.includes('/account'))return Response.json({name:'Test user',email:'test@example.com',phone:'',account_type:type});return Response.json([]);};
+  await import('../apps/web/app.js?portal='+type);await new Promise(r=>setImmediate(r));assert.ok(!requests.some(r=>r.includes('/overview')));assert.ok(document.querySelector('.portal-empty'));const account=document.querySelector(type==='student'?'#learner-account':'#family-account');assert.ok(account);await account.onclick();assert.ok(document.querySelector('#profile-form'));assert.ok(document.querySelector('#recovery-form'));dom.window.close();
+ }
+});

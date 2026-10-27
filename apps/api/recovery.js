@@ -1,0 +1,10 @@
+import {uid,hash,text,passwordHash,passwordMatches} from './security.js';
+const q=(db,sql,...a)=>db.prepare(sql).bind(...a),fail=(m,s=400)=>{throw Object.assign(Error(m),{status:s});};
+export const makeRecoveryCode=()=> (uid()+uid()).replaceAll('-','').toUpperCase().match(/.{1,8}/g).join('-');
+export const recoveryHash=code=>hash(String(code).replace(/[\s-]/g,'').toUpperCase());
+export async function recover(db,body){
+ const email=text(body.email,254).toLowerCase(),code=text(body.recovery_code,200),password=text(body.new_password,128);if(password.length<12)fail('Mật khẩu mới cần ít nhất 12 ký tự.');
+ const token=await recoveryHash(code),record=await q(db,'SELECT u.id FROM users u JOIN account_recovery r ON r.user_id=u.id WHERE u.email=? AND r.token_hash=?',email,token).first();if(!record)fail('Email hoặc mã khôi phục không đúng hoặc đã hết hiệu lực.');
+ const results=await db.batch([q(db,'UPDATE users SET password=? WHERE id=? AND EXISTS(SELECT 1 FROM account_recovery WHERE user_id=? AND token_hash=?)',await passwordHash(password),record.id,record.id,token),q(db,'DELETE FROM sessions WHERE user_id=? AND EXISTS(SELECT 1 FROM account_recovery WHERE user_id=? AND token_hash=?)',record.id,record.id,token),q(db,'DELETE FROM account_recovery WHERE user_id=? AND token_hash=?',record.id,token)]);if(!results[0].meta.changes)fail('Email hoặc mã khôi phục không đúng hoặc đã hết hiệu lực.');return Response.json({ok:true},{headers:{'Cache-Control':'no-store'}});
+}
+export async function recoverySettings(req,db,path,body,user){if(path!=='/account/recovery'||req.method!=='POST')return null;const stored=await q(db,'SELECT password FROM users WHERE id=?',user.id).first();if(!await passwordMatches(text(body.current_password,128),stored.password))fail('Mật khẩu hiện tại không đúng.',403);const code=makeRecoveryCode();await q(db,'INSERT INTO account_recovery(user_id,token_hash) VALUES(?,?) ON CONFLICT(user_id) DO UPDATE SET token_hash=excluded.token_hash,created_at=CURRENT_TIMESTAMP',user.id,await recoveryHash(code)).run();return Response.json({recovery_code:code},{headers:{'Cache-Control':'no-store'}});}
