@@ -1,0 +1,25 @@
+:root{--motion-spring:cubic-bezier(.22,1,.36,1);--motion-standard:cubic-bezier(.2,.7,.25,1)}
+@keyframes page-arrive{from{opacity:0;transform:translate3d(0,10px,0)}to{opacity:1;transform:translate3d(0,0,0)}}
+@keyframes card-arrive{from{opacity:0;transform:translate3d(0,14px,0) scale(.99)}to{opacity:1;transform:translate3d(0,0,0) scale(1)}}
+@keyframes sheet-arrive{from{opacity:0;transform:translate3d(0,18px,0) scale(.97)}to{opacity:1;transform:translate3d(0,0,0) scale(1)}}
+@keyframes menu-arrive{from{opacity:0;transform:translate3d(0,-7px,0) scale(.975)}to{opacity:1;transform:translate3d(0,0,0) scale(1)}}
+@keyframes drawer-arrive{from{opacity:0;transform:translate3d(-16px,0,0)}to{opacity:1;transform:translate3d(0,0,0)}}
+@keyframes toast-arrive{from{opacity:0;translate:0 10px;scale:.98}to{opacity:1;translate:0 0;scale:1}}
+@keyframes icon-settle{from{transform:scale(.85)}70%{transform:scale(1.06)}to{transform:scale(1)}}
+#content{animation:page-arrive 300ms var(--motion-spring)}
+#content .reference-stats .stat{animation:card-arrive 420ms var(--motion-spring) backwards}
+#content .reference-stats .stat:nth-child(2){animation-delay:35ms}#content .reference-stats .stat:nth-child(3){animation-delay:70ms}#content .reference-stats .stat:nth-child(4){animation-delay:105ms}
+.dashboard-primary>.card,.dashboard-secondary>.card,.class-list>.class-card{animation:card-arrive 390ms var(--motion-spring) backwards}
+.dashboard-primary>.card:nth-child(2),.dashboard-secondary>.card:nth-child(2){animation-delay:55ms}.dashboard-secondary>.card:nth-child(3){animation-delay:90ms}
+.class-list>.class-card:nth-child(2){animation-delay:30ms}.class-list>.class-card:nth-child(3){animation-delay:60ms}.class-list>.class-card:nth-child(4){animation-delay:90ms}.class-list>.class-card:nth-child(n+5){animation-duration:250ms}
+.auth-glass{animation:sheet-arrive 430ms var(--motion-spring)}.auth-glass .role-picker label{animation:card-arrive 350ms var(--motion-spring) backwards}.auth-glass .role-picker label:nth-child(2){animation-delay:35ms}.auth-glass .role-picker label:nth-child(3){animation-delay:70ms}
+dialog[open]{animation:sheet-arrive 250ms var(--motion-spring)}dialog[open]::backdrop{animation:page-arrive 180ms ease-out}
+.utility-menu:not([hidden]),.global-results:not([hidden]){transform-origin:top right;animation:menu-arrive 190ms var(--motion-spring)}
+.calendar-card .time-grid,.calendar-card .month-grid,.calendar-card .calendar-list{animation:page-arrive 250ms var(--motion-standard)}
+nav button,.bottom-nav button{transition:color 160ms ease,background 180ms ease,box-shadow 180ms ease,transform 180ms var(--motion-spring)}nav button.active>.ui-icon,.bottom-nav button.active>.ui-icon{animation:icon-settle 300ms var(--motion-spring)}
+button,a.contact-call,a.contact-sms{touch-action:manipulation;-webkit-tap-highlight-color:transparent}input,select,textarea{transition:border-color 160ms ease,box-shadow 160ms ease,background-color 160ms ease}input:focus,select:focus,textarea:focus{border-color:#87bbe5;box-shadow:0 0 0 3px #86c0ee1a}
+#toast{animation:toast-arrive 240ms var(--motion-spring);max-width:calc(100vw - 32px);text-align:center;line-height:1.6;background:#264965eb;backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);box-shadow:0 8px 30px #17365020}
+@media(hover:hover) and (pointer:fine){.class-card,.dashboard-primary>.card,.dashboard-secondary>.card{transition:transform 200ms var(--motion-spring),box-shadow 200ms ease}.class-card:hover,.dashboard-primary>.card:hover,.dashboard-secondary>.card:hover{transform:translateY(-2px);box-shadow:0 12px 32px #42658712,inset 0 1px 0 #fff}.agenda-row:hover,.notice-row:hover,.compact-class:hover{background:#edf6fd8a!important}.tile-icon{transition:transform 200ms var(--motion-spring)}button:hover>.tile-icon{transform:translateY(-1px) scale(1.035)}.contact-call:hover,.contact-sms:hover{transform:translateY(-1px)}}
+@media(max-width:700px){#content{animation-duration:240ms}.menu-open .shell aside{animation:drawer-arrive 230ms var(--motion-spring)}.bottom-nav{transition:background 200ms ease}.bottom-nav button.active>.ui-icon{animation-duration:250ms}#toast{bottom:calc(90px + env(safe-area-inset-bottom))}.auth-glass{animation-duration:330ms}.dashboard-primary>.card,.dashboard-secondary>.card{animation-duration:300ms}}
+@media(prefers-reduced-motion:reduce){*,*:before,*:after{animation:none!important;transition:none!important;scroll-behavior:auto!important}button:active{transform:none!important}.class-card:hover,.dashboard-primary>.card:hover,.dashboard-secondary>.card:hover{transform:none!important}}
+.class-list>.class-card:nth-child(n+9){animation:none}

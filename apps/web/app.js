@@ -1,3 +1,4 @@
+import {installMotion,closeDialog} from './motion.js';
 import {authUI,showRecovery} from './auth-ui.js';
 import {icon,navIcon,brand,initials,dashboard,enhanceShell} from './design-ui.js';
 import {accountPage,announcementPage} from './account-ui.js';
@@ -14,7 +15,7 @@ async function api(path,body,method){const r=await fetch(`/api/v1${path}${tenant
 function toast(s){$('#toast').textContent=s;$('#toast').style.display='block';setTimeout(()=>$('#toast').style.display='none',3500);}
 function field(label,name,type='text',extra=''){return `<label>${label}<input name="${name}" type="${type}" ${extra}></label>`;}
 function select(label,name,rows,labelFn=x=>x.name){return `<label>${label}<select name="${name}" required><option value="">Chọn…</option>${rows.map(x=>`<option value="${esc(x.id)}">${esc(labelFn(x))}</option>`).join('')}</select></label>`;}
-function dialog(title,fields,submit,refreshAfter=true){$('#modal-content').innerHTML=`<h2>${title}</h2><form>${fields}<div class="error" role="alert"></div><div class="actions"><button type="button" class="secondary" data-close>Hủy</button><button>Lưu</button></div></form>`;modal.showModal();$('[data-close]').onclick=()=>modal.close();$('#modal-content form').onsubmit=async e=>{e.preventDefault();const button=e.submitter;button.disabled=true;try{const outcome=await submit(Object.fromEntries(new FormData(e.target)));modal.close();if(refreshAfter)await refresh();toast(outcome?.message||'Đã lưu thành công.');}catch(err){$('#modal-content .error').textContent=err.message;}finally{button.disabled=false;}};}
+function dialog(title,fields,submit,refreshAfter=true){$('#modal-content').innerHTML=`<h2>${title}</h2><form>${fields}<div class="error" role="alert"></div><div class="actions"><button type="button" class="secondary" data-close>Hủy</button><button>Lưu</button></div></form>`;modal.showModal();$('[data-close]').onclick=()=>closeDialog(modal);$('#modal-content form').onsubmit=async e=>{e.preventDefault();const button=e.submitter;button.disabled=true;try{const outcome=await submit(Object.fromEntries(new FormData(e.target)));await closeDialog(modal);if(refreshAfter)await refresh();toast(outcome?.message||'Đã lưu thành công.');}catch(err){$('#modal-content .error').textContent=err.message;}finally{button.disabled=false;}};}
 function auth(){document.body.classList.remove('menu-open','mobile-search-open');app.removeAttribute('data-current-page');authUI({app,api,esc,toast,onSuccess:init});}
 async function init(){try{me=await api('/auth/me');tenant=me.tenants[0]?.id;if(me.user.account_type==='guardian')return await openFamily();if(me.user.account_type==='student')return await openLearning();if(tenant)return await refresh();return await openLearning();}catch(e){if(me)toast(e.message);else auth();}}
 async function home(){tenant=me.tenants[0]?.id;if(tenant){page='overview';await refresh();}else if(me.user.account_type==='guardian')await openFamily();else await openLearning();}
@@ -48,6 +49,7 @@ function bindArchive(){document.querySelectorAll('[data-archive]').forEach(b=>b.
 async function logoutAccount(){await api('/auth/logout',{});me=null;tenant=null;auth();}
 async function openPortalAccount(back){app.innerHTML='<main id="portal-account"></main>';await accountPage({content:$('#portal-account'),api,esc,field,toast,onSaved:async()=>{me=await api('/auth/me');},onReauthenticate:()=>{me=null;tenant=null;auth();},onLogout:logoutAccount,onBack:back,onRecovery:code=>showRecovery({app,code,esc,onContinue:back})});}
 async function openLearning(){await learnerUI({api,app,esc,date,toast,openAccount:openPortalAccount,dialog:(t,f,s)=>dialog(t,f,s,false),field,setTenant:id=>{tenant=id;},teacherHome:home});}
+installMotion();
 init();
 
 if('serviceWorker' in navigator)navigator.serviceWorker.register('/sw.js').catch(()=>{});
