@@ -13,7 +13,7 @@ def api(path,method='GET',payload=None):
   sys.exit(1)
  if not result.get('success'):print('Cloudflare operation failed.');sys.exit(1)
  return result['result']
-api('/user/tokens/verify');print('Token verified.',flush=True)
+api('/accounts/'+ACCOUNT+'/tokens/verify');print('Token verified.',flush=True)
 databases=api('/accounts/'+ACCOUNT+'/d1/database');database=next((d for d in databases if d['name']=='ltmclass'),None)
 if not database: database=api('/accounts/'+ACCOUNT+'/d1/database','POST',{'name':'ltmclass'})
 id=database['uuid'];print('D1 ready:',id,flush=True)

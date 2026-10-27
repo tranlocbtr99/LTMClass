@@ -4,5 +4,5 @@
   "main": "apps/api/worker.js",
   "compatibility_date": "2026-10-01",
   "assets": {"directory": "apps/web", "binding": "ASSETS", "run_worker_first": ["/api/*"]},
-  "d1_databases": [{"binding": "DB", "database_name": "ltmclass", "database_id": "REPLACE_AFTER_PROVISIONING", "migrations_dir": "db/migrations"}]
+  "d1_databases": [{"binding": "DB", "database_name": "ltmclass", "database_id": "77d26e8f-8caf-4b3a-b2ea-05dfad1b84e8", "migrations_dir": "db/migrations"}]
 }

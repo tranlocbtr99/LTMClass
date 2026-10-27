@@ -11,8 +11,8 @@ Updated: 2026-10-27. Initial usable teacher-workspace foundation, not the comple
 - Audit trail; archiving preserves history; composite foreign keys block cross-tenant links.
 - Automated security/schema tests and validation/release workflows.
 
-## Release blocker
-Cloudflare rejected the supplied API token with HTTP 401, code 1000, Invalid API Token. No production database or deployment was created. R2 access credentials are not used as a substitute for Cloudflare control-plane authorization.
+## Deployment
+The replacement account API token verified successfully. D1 provisioned and migration 0001 applied. Initial teacher workspace deployed at https://ltmclass.tranlocbtr99.workers.dev on 2026-10-27. Version: 2cb72a22-9441-485c-aaad-63bc5ef8dfab. All 13 local security, SQL and workflow tests pass. Browser interaction QA remains incomplete because local Wrangler preview fails with uv_interface_addresses in this environment. GitHub production deployment still requires repository environment secrets; no token is committed.
 
 ## Remaining product scope
 - Invitations and class-scoped assistant grants; student and verified guardian portals.

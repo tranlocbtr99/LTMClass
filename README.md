@@ -24,6 +24,6 @@ For GitHub Actions, set `CLOUDFLARE_API_TOKEN` and `CLOUDFLARE_ACCOUNT_ID` as pr
 
 ## Status
 
-Initial foundation implemented; deployment is blocked by an invalid Cloudflare token. This is not a finished production release. See [current status](docs/status.md), [architecture](docs/architecture.md) and [implementation plan](docs/implementation-plan.md).
+Initial foundation deployed: https://ltmclass.tranlocbtr99.workers.dev. This is not the finished full-scope product. See [current status](docs/status.md), [architecture](docs/architecture.md) and [implementation plan](docs/implementation-plan.md).
 
 No credentials are included in source. Sessions use secure cookies; use Wrangler's local development handling or HTTPS outside localhost. Payments are manually recorded receipts, not a payment gateway.
