@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import {DatabaseSync} from 'node:sqlite';
 import {readFileSync} from 'node:fs';
 import worker from '../apps/api/worker.js';
-function database(){const sql=new DatabaseSync(':memory:');for(const file of ['0001_core.sql','0002_teaching.sql','0003_family_operations.sql','0004_assistants.sql','0005_notification_updates.sql','0006_material_links.sql','0007_lesson_overlap.sql','0008_accounts_announcements.sql'])sql.exec(readFileSync('db/migrations/'+file,'utf8'));return {prepare(query){let values=[];const stmt={bind(...args){values=args;return stmt;},async first(){return sql.prepare(query).get(...values)||null;},async all(){return {results:sql.prepare(query).all(...values)};},async run(){const result=sql.prepare(query).run(...values);return {meta:{changes:Number(result.changes)}};}};return stmt;},async batch(statements){sql.exec('BEGIN');try{const results=[];for(const stmt of statements)results.push(await stmt.run());sql.exec('COMMIT');return results;}catch(e){sql.exec('ROLLBACK');throw e;}}};}
+function database(){const sql=new DatabaseSync(':memory:');for(const file of ['0001_core.sql','0002_teaching.sql','0003_family_operations.sql','0004_assistants.sql','0005_notification_updates.sql','0006_material_links.sql','0007_lesson_overlap.sql','0008_accounts_announcements.sql','0009_assignment_drive_link.sql'])sql.exec(readFileSync('db/migrations/'+file,'utf8'));return {prepare(query){let values=[];const stmt={bind(...args){values=args;return stmt;},async first(){return sql.prepare(query).get(...values)||null;},async all(){return {results:sql.prepare(query).all(...values)};},async run(){const result=sql.prepare(query).run(...values);return {meta:{changes:Number(result.changes)}};}};return stmt;},async batch(statements){sql.exec('BEGIN');try{const results=[];for(const stmt of statements)results.push(await stmt.run());sql.exec('COMMIT');return results;}catch(e){sql.exec('ROLLBACK');throw e;}}};}
 test('teacher workflow, isolation, attendance and payment reconciliation',async()=>{
  const DB=database();let cookie='',tenant='';
  async function call(path,body,method){const response=await worker.fetch(new Request('https://ltm.test/api/v1'+path+(tenant?(path.includes('?')?'&':'?')+'tenant='+tenant:''),{method:method||(body?'POST':'GET'),headers:{Origin:'https://ltm.test','Content-Type':'application/json',Cookie:cookie},body:body?JSON.stringify(body):undefined}),{DB});const content=await response.json();return {status:response.status,content,cookie:response.headers.get('Set-Cookie')};}
@@ -38,7 +38,8 @@ test('student linking, homework grades, exam snapshots, recovery and authoritati
  const classId=(await call('/classes',{name:'Class'})).content.id,studentId=(await call('/students',{name:'Learner'})).content.id;
  await call('/enrollments',{class_id:classId,student_id:studentId});
  const code=(await call('/student-invites',{student_id:studentId})).content.code;assert.ok(code);
- const due=new Date(Date.now()+3600000).toISOString();const assignmentId=(await call('/assignments',{class_id:classId,title:'Homework',instructions:'Explain your answer',due_at:due,published:true})).content.id;
+ const due=new Date(Date.now()+3600000).toISOString();const assignmentId=(await call('/assignments',{class_id:classId,title:'Homework',resource_url:'https://drive.google.com/file/d/homework/view',instructions:'Explain your answer',due_at:due,published:true})).content.id;
+ assert.equal((await call('/assignments',{class_id:classId,title:'Invalid link',instructions:'test',resource_url:'javascript:alert(1)',due_at:due,published:true})).status,400);
  const questionId=(await call('/questions',{subject:'Math',prompt:'2 + 2?',choices:['1','2','3','4'],answer:3,explanation:'Add two'})).content.id;
  const exam=(await call('/exams',{class_id:classId,title:'Quiz',duration:30,opens_at:new Date(Date.now()-60000).toISOString(),closes_at:due,published:true,question_ids:[questionId]}));assert.equal(exam.status,201);const examId=exam.content.id;
  const material=(await call('/materials',{class_id:classId,title:'Notes',external_url:'https://drive.google.com/file/d/example/view'})).content.id;assert.ok(material);
@@ -46,7 +47,7 @@ test('student linking, homework grades, exam snapshots, recovery and authoritati
  tenant='';cookie='';r=await call('/auth/register',{email:'s@example.test',name:'Learner',workspace:'Personal',password:'learner pass 12345'});cookie=r.cookie.split(';')[0];const studentCookie=cookie;
  assert.equal((await call('/learning/redeem',{code})).status,200);assert.equal((await call('/learning/redeem',{code})).status,400);
  assert.equal((await call('/learning')).content.length,1);tenant=school;
- assert.equal((await call('/overview')).status,403);assert.equal((await call('/learn/overview')).content.assignments.length,1);
+ assert.equal((await call('/overview')).status,403);assert.equal((await call('/learn/overview')).content.assignments.length,1);assert.equal((await call('/learn/overview')).content.assignments[0].resource_url,'https://drive.google.com/file/d/homework/view');
  assert.equal((await call('/learn/materials/'+material)).status,302);
  assert.equal((await call('/learn/submit',{assignment_id:assignmentId,content:'My answer'})).status,200);
  assert.equal((await call('/learn/submit',{assignment_id:assignmentId,content:'Another answer'})).status,409);

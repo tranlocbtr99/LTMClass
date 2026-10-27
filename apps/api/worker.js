@@ -12,7 +12,7 @@ const cookie=(token,age)=>`ltm_session=${token}; Path=/; HttpOnly; Secure; SameS
 async function limited(db,key,limit){const now=Math.floor(Date.now()/1000);await query(db,'INSERT INTO rate_limits(key,count,reset_at) VALUES(?,1,?) ON CONFLICT(key) DO UPDATE SET count=CASE WHEN reset_at<? THEN 1 ELSE count+1 END, reset_at=CASE WHEN reset_at<? THEN excluded.reset_at ELSE reset_at END',key,now+900,now,now).run();const row=await one(db,'SELECT count FROM rate_limits WHERE key=?',key);if(row.count>limit)fail('Thử lại sau 15 phút.',429);}
 async function api(req,env){
  const url=new URL(req.url),path=url.pathname.replace('/api/v1',''),db=env.DB;
- if(path==='/health')return json({ok:true,version:'0.5.0'});
+ if(path==='/health')return json({ok:true,version:'0.5.1'});
  if(!db)fail('Cơ sở dữ liệu chưa được cấu hình.',503);
  const write=!['GET','HEAD'].includes(req.method);
  if(write&&!sameOrigin(req))fail('Nguồn yêu cầu không hợp lệ.',403);
