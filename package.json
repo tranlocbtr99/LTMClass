@@ -1,0 +1,1 @@
+{"name":"ltmclass","private":true,"type":"module","scripts":{"test":"node --test tests/*.test.mjs && python3 tests/schema_test.py","check":"node --check apps/api/worker.js && node --check apps/web/app.js","dev":"wrangler dev","deploy":"wrangler deploy"},"devDependencies":{"wrangler":"4.45.0"}}
