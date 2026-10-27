@@ -18,14 +18,17 @@ Implemented teacher, student, guardian and class-scoped assistant workflows. Acc
 - In-app notifications for homework, grades, attendance and receipts; event deduplication.
 - Invoices, partial payments, overpayment prevention and idempotency keys.
 - Accurate overall totals and reports, tenant JSON export and audit history.
+- Account management page: name, login email, phone, password and logout. Login email changes require the current password and invalidate all sessions; linked class data is retained.
+- Teacher phone contact is restricted to linked, active students/guardians with call/SMS links.
+- Teacher class announcements (general/schedule/homework), idempotent delivery to linked student and guardian inboxes. Publishing homework also notifies guardians. Notifications are in-app, not background push/email/SMS.
 - Password change with current-password verification and revocation of all sessions.
 - PWA shell; offline cache excludes all API responses and user records.
 - HTTPS material links and optional external submission links; no R2 dependency. Source-file permissions remain managed at the external storage service.
 
 ## Validation
-25 automated checks: 19 Node security/workflow/UI checks, 5 schema checks and one full SQLite backup/restore exercise. Integration checks cover ownership isolation, cross-class assistant denial, guardian revocation, assignment grading, exam recovery/deadlines/snapshots, receipt deduplication, notification deduplication and scheduled expiry. These are local tests using real SQLite with a D1 adapter, not a claim of production load capacity.
+26 automated checks: 20 Node security/workflow/UI checks, 5 schema checks and one full SQLite backup/restore exercise. Integration checks cover ownership isolation, cross-class assistant denial, guardian revocation, assignment grading, exam recovery/deadlines/snapshots, receipt deduplication, notification deduplication and scheduled expiry. These are local tests using real SQLite with a D1 adapter, not a claim of production load capacity.
 
-Seven additive migrations, including external links and class overlap protection. Public authentication shell was inspected in Chrome. Signed-in browser workflows and mobile/PWA install checks remain incomplete. Local Wrangler preview is blocked by uv_interface_addresses in this environment.
+Eight additive migrations, including external links and class overlap protection. Public authentication shell was inspected in Chrome. Signed-in browser workflows and mobile/PWA install checks remain incomplete. Local Wrangler preview is blocked by uv_interface_addresses in this environment.
 
 ## External blockers and remaining release work
 - No email sender/domain configured: email verification, password-reset email and external notifications are not implemented. Existing email addresses are not verified.

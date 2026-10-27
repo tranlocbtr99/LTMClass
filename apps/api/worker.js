@@ -1,3 +1,4 @@
+import {account,announcements} from './accounts.js';
 import {redeemAssistant,manageAssistants,assistantRequest} from './assistants.js';
 import {personal,operations} from './operations.js';
 import {learning,teaching} from './teaching.js';
@@ -11,7 +12,7 @@ const cookie=(token,age)=>`ltm_session=${token}; Path=/; HttpOnly; Secure; SameS
 async function limited(db,key,limit){const now=Math.floor(Date.now()/1000);await query(db,'INSERT INTO rate_limits(key,count,reset_at) VALUES(?,1,?) ON CONFLICT(key) DO UPDATE SET count=CASE WHEN reset_at<? THEN 1 ELSE count+1 END, reset_at=CASE WHEN reset_at<? THEN excluded.reset_at ELSE reset_at END',key,now+900,now,now).run();const row=await one(db,'SELECT count FROM rate_limits WHERE key=?',key);if(row.count>limit)fail('Thử lại sau 15 phút.',429);}
 async function api(req,env){
  const url=new URL(req.url),path=url.pathname.replace('/api/v1',''),db=env.DB;
- if(path==='/health')return json({ok:true,version:'0.3.0'});
+ if(path==='/health')return json({ok:true,version:'0.4.0'});
  if(!db)fail('Cơ sở dữ liệu chưa được cấu hình.',503);
  const write=!['GET','HEAD'].includes(req.method);
  if(write&&!sameOrigin(req))fail('Nguồn yêu cầu không hợp lệ.',403);
@@ -37,6 +38,8 @@ async function api(req,env){
  const tenants=await all(db,'SELECT t.id,t.name,m.role FROM tenants t JOIN members m ON t.id=m.tenant_id WHERE m.user_id=?',session.id);
  if(path==='/auth/me'&&req.method==='GET')return json({user:session,tenants});
  const tenant=url.searchParams.get('tenant');
+ if(write&&['/account','/account/password'].includes(path))await limited(db,'account:'+session.id,10);
+ const accountResult=await account(req,db,path,body,session,tenant);if(accountResult)return accountResult;
  const assistantRedemption=await redeemAssistant(req,db,path,body,session);if(assistantRedemption)return assistantRedemption;
  const personalResult=await personal(req,db,path,body,session,tenant);if(personalResult)return personalResult;
  const learnerResult=await learning(req,db,path,body,session,tenant,env);if(learnerResult)return learnerResult;
@@ -44,6 +47,7 @@ async function api(req,env){
 
  const audit=(action,id)=>query(db,'INSERT INTO audit_logs(id,tenant_id,user_id,action,resource_id) VALUES(?,?,?,?,?)',uid(),tenant,session.id,action,id);
  if(membership.role==='assistant')return assistantRequest(req,db,path,body,tenant,session,audit);
+ const announcementResult=await announcements(req,db,path,body,tenant,session,audit);if(announcementResult)return announcementResult;
  const assistantManagement=await manageAssistants(req,db,path,body,tenant,audit);if(assistantManagement)return assistantManagement;
  const operationsResult=await operations(req,db,path,body,tenant,session,audit);if(operationsResult)return operationsResult;
  const teachingResult=await teaching(req,env,path,body,tenant,session,audit);if(teachingResult)return teachingResult;

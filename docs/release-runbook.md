@@ -2,7 +2,7 @@
 
 ## Current runtime
 - Worker: ltmclass
-- D1: ltmclass, seven additive migrations
+- D1: ltmclass, eight additive migrations
 - Cron: every five minutes, grades expired attempts and deletes expired sessions/rate limits/invites
 - Material files remain in external HTTPS storage; the app stores links in D1, without R2.
 
