@@ -1,3 +1,4 @@
+import {brand} from './design-ui.js';
 import {contactCard,announcementCards,inboxCards,bindInbox} from './account-ui.js';
 export async function teachingUI(ctx){
  const {page,api,content,data,esc,money,date,dialog,field,select,table,toast,refresh,heading}=ctx;
@@ -25,7 +26,7 @@ document.querySelectorAll('[data-publish]').forEach(b=>b.onclick=async()=>{try{a
 export async function learnerUI(ctx){
  const {api,app,esc,date,toast,dialog,field}=ctx;
  let links=await api('/learning');
- app.innerHTML=`<main><div class="heading"><div><div class="brand"><span class="mark">L</span>LTMClass</div><h1 class="spaced">Góc học tập</h1><p class="muted">Bài tập, tài liệu và kỳ thi được giáo viên giao.</p></div><div class="actions"><button class="secondary" id="learner-account">Tài khoản</button><button class="secondary" id="teacher-home">Không gian giáo viên</button></div></div><div class="card"><div class="heading"><h2>Lớp học đã liên kết</h2><button id="redeem">Nhập mã giáo viên</button></div><select id="learning-space" aria-label="Không gian học tập"><option value="">Chọn không gian học tập</option>${links.map((l,i)=>`<option value="${i}">${esc(l.tenant_name)} · ${esc(l.student_name)}</option>`).join('')}</select></div><div id="learning-content" class="spaced"></div></main>`;
+ app.innerHTML=`<main><div class="heading"><div><div class="brand">${brand()}</div><h1 class="spaced">Góc học tập</h1><p class="muted">Bài tập, tài liệu và kỳ thi được giáo viên giao.</p></div><div class="actions"><button class="secondary" id="learner-account">Tài khoản</button><button class="secondary" id="teacher-home">Không gian giáo viên</button></div></div><div class="card"><div class="heading"><h2>Lớp học đã liên kết</h2><button id="redeem">Nhập mã giáo viên</button></div><select id="learning-space" aria-label="Không gian học tập"><option value="">Chọn không gian học tập</option>${links.map((l,i)=>`<option value="${i}">${esc(l.tenant_name)} · ${esc(l.student_name)}</option>`).join('')}</select></div><div id="learning-content" class="spaced"></div></main>`;
  document.querySelector('#teacher-home').onclick=ctx.teacherHome;document.querySelector('#learner-account').onclick=()=>ctx.openAccount(()=>learnerUI(ctx));
  document.querySelector('#redeem').onclick=()=>dialog('Liên kết với giáo viên',field('Mã liên kết (giáo viên cấp, hiệu lực 24 giờ)','code','text','required'),async v=>{await api('/learning/redeem',v);await learnerUI(ctx);});
  const space=document.querySelector('#learning-space');space.onchange=async()=>{const link=links[Number(space.value)];if(space.value===''||!link)return;ctx.setTenant(link.tenant_id);await load();};

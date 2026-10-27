@@ -39,3 +39,6 @@ Eight additive migrations, including external links and class overlap protection
 - Student/guardian sign-up flow still uses personal workspace creation, to be streamlined.
 
 Full original project scope is not yet complete. No production records were fabricated for validation.
+
+## Reference UI update
+Teacher UI follows the supplied classroom-dashboard reference: light sidebar, teal actions, SVG line icons, colored statistics, today/upcoming agenda, class announcements, real attendance counts and monthly receipts. No demonstration metrics are injected into the published app. Responsive bottom navigation and compact cards are provided for phones. Timetable supports weekly time-grid, month and list views, with parallel event lanes for overlapping classes. Global class/student search and local class search are available. The application UI test covers these controls. Signed-in visual/browser QA remains limited; the local visual QA server cannot be reached by the remote browser.
