@@ -16,11 +16,6 @@ def api(path,method='GET',payload=None):
 api('/accounts/'+ACCOUNT+'/tokens/verify');print('Token verified.',flush=True)
 databases=api('/accounts/'+ACCOUNT+'/d1/database');database=next((d for d in databases if d['name']=='ltmclass'),None)
 if not database: database=api('/accounts/'+ACCOUNT+'/d1/database','POST',{'name':'ltmclass'})
-if '--with-r2' in sys.argv:
- buckets=api('/accounts/'+ACCOUNT+'/r2/buckets')
- if not any(b['name']=='ltmclass-files' for b in buckets.get('buckets',[])):api('/accounts/'+ACCOUNT+'/r2/buckets','POST',{'name':'ltmclass-files'})
- config_data=json.load(open('wrangler.jsonc'));config_data['r2_buckets']=[{'binding':'FILES','bucket_name':'ltmclass-files'}];open('wrangler.jsonc','w').write(json.dumps(config_data,indent=2)+'\n')
- print('Private R2 bucket ready.',flush=True)
 id=database['uuid'];print('D1 ready:',id,flush=True)
 config=open('wrangler.jsonc').read();config=re.sub(r'"database_id": "[^"]+"','"database_id": "'+id+'"',config);open('wrangler.jsonc','w').write(config)
 env={**os.environ,'CLOUDFLARE_API_TOKEN':TOKEN,'CLOUDFLARE_ACCOUNT_ID':ACCOUNT,'CI':'true','WRANGLER_SEND_METRICS':'false'}

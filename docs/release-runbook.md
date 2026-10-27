@@ -2,9 +2,9 @@
 
 ## Current runtime
 - Worker: ltmclass
-- D1: ltmclass, five additive migrations
+- D1: ltmclass, seven additive migrations
 - Cron: every five minutes, grades expired attempts and deletes expired sessions/rate limits/invites
-- Optional R2 binding: FILES, private ltmclass-files bucket
+- Material files remain in external HTTPS storage; the app stores links in D1, without R2.
 
 ## Validation
 Run npm ci, npm run check and npm test. Validate Worker packaging with npx wrangler deploy --dry-run. Tests do not use production records.
@@ -12,7 +12,7 @@ Run npm ci, npm run check and npm test. Validate Worker packaging with npx wrang
 ## Publication
 Run python3 scripts/cloudflare-deploy.py. Token is read without echo via stdin and only passed in the child-process environment. It provisions/reuses D1, persists the non-secret database ID, applies migrations and deploys.
 
-After the account owner enables R2 in Cloudflare Dashboard, run python3 scripts/cloudflare-deploy.py --with-r2. This creates/reuses the private bucket, binds FILES and publishes. Commit the resulting non-secret binding configuration. Never expose the bucket publicly.
+No R2 activation or binding is required. Teachers share HTTPS document links and configure access at the source service.
 
 For GitHub releases, configure production environment secrets CLOUDFLARE_API_TOKEN and CLOUDFLARE_ACCOUNT_ID. Dispatch Deploy LTMClass. The connector cannot provision these repository secrets. Deployment jobs are serialized.
 

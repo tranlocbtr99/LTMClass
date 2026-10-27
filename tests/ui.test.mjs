@@ -1,0 +1,20 @@
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import {JSDOM} from 'jsdom';
+import {readFileSync} from 'node:fs';
+test('dashboard, compact menu, timetable builder and material links work through the rendered UI',async()=>{
+ const dom=new JSDOM(readFileSync('apps/web/index.html','utf8'),{url:'https://ltm.test/'});
+ globalThis.window=dom.window;globalThis.document=dom.window.document;globalThis.FormData=dom.window.FormData;Object.defineProperty(globalThis,'navigator',{value:dom.window.navigator,configurable:true});
+ dom.window.HTMLDialogElement.prototype.showModal=function(){this.open=true;};dom.window.HTMLDialogElement.prototype.close=function(){this.open=false;};
+ const requests=[];globalThis.fetch=async(url,options={})=>{requests.push({url,body:options.body&&JSON.parse(options.body)});let body={ok:true};if(url.includes('/auth/me'))body={user:{name:'Teacher'},tenants:[{id:'t',name:'My School',role:'owner'}]};if(url.includes('/overview'))body={classes:[{id:'c',name:'Toán 12',subject:'Toán',fee:100}],students:[],enrollments:[],lessons:[],invoices:[]};if(url.includes('/calendar'))body=[];if(url.includes('/teaching'))body={material_mode:'links',assignments:[],submissions:[],questions:[],exams:[],attempts:[],materials:[]};return Response.json(body);};
+ await import('../apps/web/app.js?ui-test');await new Promise(resolve=>setImmediate(resolve));
+ assert.ok(document.querySelector('.dashboard-actions'));assert.equal(document.querySelector('#utility-menu').hidden,true);document.querySelector('#more-tools').click();assert.equal(document.querySelector('#utility-menu').hidden,false);
+ document.querySelector('#mobile-menu').click();assert.ok(document.body.classList.contains('menu-open'));
+ await document.querySelector('[data-page="lessons"]').onclick();await new Promise(resolve=>setImmediate(resolve));assert.equal(document.body.classList.contains('menu-open'),false);assert.equal(document.querySelectorAll('.calendar-day').length,7);
+ document.querySelector('#add').click();assert.equal(document.querySelectorAll('.schedule-slot').length,1);document.querySelector('#add-slot').click();assert.equal(document.querySelectorAll('.schedule-slot').length,2);
+ document.querySelector('[name="class_id"]').value='c';document.querySelector('[name="start_date"]').value='2026-11-02';document.querySelector('[name="weeks"]').value='4';const second=document.querySelectorAll('.schedule-slot')[1];second.querySelector('[data-weekday]').value='3';second.querySelector('[data-start]').value='19:00';second.querySelector('[data-end]').value='21:00';
+ const form=document.querySelector('#modal-content form');await form.onsubmit({preventDefault(){},target:form,submitter:form.querySelector('button:not([type])')});
+ const schedule=requests.find(r=>r.url.includes('/schedules'));assert.equal(schedule.body.sessions.length,2);assert.equal(schedule.body.sessions[1].weekday,3);assert.equal(schedule.body.sessions[1].end_time,'21:00');assert.equal(schedule.body.weeks,4);
+ await document.querySelector('[data-page="materials"]').onclick();document.querySelector('#add').click();assert.ok(document.querySelector('[name="external_url"]'));assert.equal(document.querySelectorAll('input[type="file"]').length,0);assert.match(document.querySelector('#content').textContent,/Google Drive/);
+ dom.window.close();
+});

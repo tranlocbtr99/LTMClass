@@ -1,0 +1,2 @@
+ALTER TABLE materials ADD COLUMN external_url TEXT NOT NULL DEFAULT '';
+ALTER TABLE submissions ADD COLUMN external_url TEXT NOT NULL DEFAULT '';

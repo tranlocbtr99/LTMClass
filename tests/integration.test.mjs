@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import {DatabaseSync} from 'node:sqlite';
 import {readFileSync} from 'node:fs';
 import worker from '../apps/api/worker.js';
-function database(){const sql=new DatabaseSync(':memory:');for(const file of ['0001_core.sql','0002_teaching.sql','0003_family_operations.sql','0004_assistants.sql','0005_notification_updates.sql'])sql.exec(readFileSync('db/migrations/'+file,'utf8'));return {prepare(query){let values=[];const stmt={bind(...args){values=args;return stmt;},async first(){return sql.prepare(query).get(...values)||null;},async all(){return {results:sql.prepare(query).all(...values)};},async run(){const result=sql.prepare(query).run(...values);return {meta:{changes:Number(result.changes)}};}};return stmt;},async batch(statements){sql.exec('BEGIN');try{const results=[];for(const stmt of statements)results.push(await stmt.run());sql.exec('COMMIT');return results;}catch(e){sql.exec('ROLLBACK');throw e;}}};}
+function database(){const sql=new DatabaseSync(':memory:');for(const file of ['0001_core.sql','0002_teaching.sql','0003_family_operations.sql','0004_assistants.sql','0005_notification_updates.sql','0006_material_links.sql','0007_lesson_overlap.sql'])sql.exec(readFileSync('db/migrations/'+file,'utf8'));return {prepare(query){let values=[];const stmt={bind(...args){values=args;return stmt;},async first(){return sql.prepare(query).get(...values)||null;},async all(){return {results:sql.prepare(query).all(...values)};},async run(){const result=sql.prepare(query).run(...values);return {meta:{changes:Number(result.changes)}};}};return stmt;},async batch(statements){sql.exec('BEGIN');try{const results=[];for(const stmt of statements)results.push(await stmt.run());sql.exec('COMMIT');return results;}catch(e){sql.exec('ROLLBACK');throw e;}}};}
 test('teacher workflow, isolation, attendance and payment reconciliation',async()=>{
  const DB=database();let cookie='',tenant='';
  async function call(path,body,method){const response=await worker.fetch(new Request('https://ltm.test/api/v1'+path+(tenant?(path.includes('?')?'&':'?')+'tenant='+tenant:''),{method:method||(body?'POST':'GET'),headers:{Origin:'https://ltm.test','Content-Type':'application/json',Cookie:cookie},body:body?JSON.stringify(body):undefined}),{DB});const content=await response.json();return {status:response.status,content,cookie:response.headers.get('Set-Cookie')};}
@@ -41,13 +41,13 @@ test('student linking, homework grades, exam snapshots, recovery and authoritati
  const due=new Date(Date.now()+3600000).toISOString();const assignmentId=(await call('/assignments',{class_id:classId,title:'Homework',instructions:'Explain your answer',due_at:due,published:true})).content.id;
  const questionId=(await call('/questions',{subject:'Math',prompt:'2 + 2?',choices:['1','2','3','4'],answer:3,explanation:'Add two'})).content.id;
  const exam=(await call('/exams',{class_id:classId,title:'Quiz',duration:30,opens_at:new Date(Date.now()-60000).toISOString(),closes_at:due,published:true,question_ids:[questionId]}));assert.equal(exam.status,201);const examId=exam.content.id;
- const material=(await call('/materials',{class_id:classId,title:'Notes',filename:'notes.txt',base64:btoa('private notes')})).content.id;assert.ok(material);
+ const material=(await call('/materials',{class_id:classId,title:'Notes',external_url:'https://drive.google.com/file/d/example/view'})).content.id;assert.ok(material);
  await DB.prepare("UPDATE questions SET answer=0 WHERE id=?").bind(questionId).run();
  tenant='';cookie='';r=await call('/auth/register',{email:'s@example.test',name:'Learner',workspace:'Personal',password:'learner pass 12345'});cookie=r.cookie.split(';')[0];const studentCookie=cookie;
  assert.equal((await call('/learning/redeem',{code})).status,200);assert.equal((await call('/learning/redeem',{code})).status,400);
  assert.equal((await call('/learning')).content.length,1);tenant=school;
  assert.equal((await call('/overview')).status,403);assert.equal((await call('/learn/overview')).content.assignments.length,1);
- assert.equal((await call('/learn/materials/'+material)).content,'private notes');
+ assert.equal((await call('/learn/materials/'+material)).status,302);
  assert.equal((await call('/learn/submit',{assignment_id:assignmentId,content:'My answer'})).status,200);
  assert.equal((await call('/learn/submit',{assignment_id:assignmentId,content:'Another answer'})).status,409);
  r=await call('/learn/attempt',{exam_id:examId});assert.equal(r.status,200);assert.ok(!('answer' in r.content.questions[0]));assert.ok(!('explanation' in r.content.questions[0]));const attempt=r.content.attempt.id;
@@ -109,4 +109,15 @@ test('password changes require old password and invalidate existing sessions',as
  assert.equal((await call('/account/password',{current_password:'wrong password',new_password:'new password 123'})).status,403);assert.equal((await call('/auth/me')).status,200);
  assert.equal((await call('/account/password',{current_password:'original pass 123',new_password:'new password 123'})).status,200);assert.equal((await call('/auth/me')).status,401);
  assert.equal((await call('/auth/login',{email:'password@test.com',password:'original pass 123'})).status,401);assert.equal((await call('/auth/login',{email:'password@test.com',password:'new password 123'})).status,200);
+});
+test('flexible schedules are atomic, idempotent and detect existing class overlaps',async()=>{
+ const DB=database();let cookie='',tenant='';async function call(path,body){const r=await worker.fetch(new Request('https://ltm.test/api/v1'+path+(tenant?'?tenant='+tenant:''),{method:body?'POST':'GET',headers:{Origin:'https://ltm.test','Content-Type':'application/json',Cookie:cookie},body:body?JSON.stringify(body):undefined}),{DB});return {status:r.status,content:await r.json(),cookie:r.headers.get('Set-Cookie')};}
+ let r=await call('/auth/register',{email:'timetable@test.com',password:'timetable password',name:'Teacher',workspace:'School'});cookie=r.cookie.split(';')[0];tenant=(await call('/auth/me')).content.tenants[0].id;
+ const cls=(await call('/classes',{name:'Class'})).content.id;
+ const input={class_id:cls,start_date:'2026-11-02',weeks:2,sessions:[{weekday:1,start_time:'18:00',end_time:'19:30'},{weekday:3,start_time:'19:00',end_time:'21:00'}]};
+ r=await call('/schedules',input);assert.equal(r.content.created,4);assert.equal((await call('/schedules',input)).content.created,0);
+ r=await call('/schedules',{...input,sessions:[{weekday:1,start_time:'19:00',end_time:'20:00'}]});assert.equal(r.status,409);assert.equal((await call('/overview')).content.lessons.length,4);
+ assert.equal((await call('/lessons',{class_id:cls,starts_at:'2026-11-02T11:30:00Z',ends_at:'2026-11-02T12:45:00Z'})).status,409);
+ assert.equal((await call('/materials',{class_id:cls,title:'Unsafe',external_url:'javascript:alert(1)'})).status,400);
+ assert.equal((await call('/materials',{class_id:cls,title:'Class notes',external_url:'https://example.com/notes'})).status,201);
 });
