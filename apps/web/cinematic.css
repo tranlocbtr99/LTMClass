@@ -54,3 +54,8 @@ input,select,textarea,.class-search{background:#0b2030;border-color:#738797;colo
 }
 @media(max-width:1000px) and (orientation:landscape) and (max-height:600px){.shell main{padding-bottom:82px}.bottom-nav{left:auto;width:min(450px,calc(100vw - 24px));right:max(12px,env(safe-area-inset-right));padding:4px}.bottom-nav button{min-height:42px;flex-direction:row;gap:7px;font-size:11px}.bottom-nav .ui-icon{width:18px;height:18px}.menu-open .shell aside{width:min(340px,calc(100vw - 32px));gap:10px;padding-top:12px;padding-bottom:12px}.menu-open .shell aside nav button{min-height:40px;font-size:13px;padding:8px 10px}.menu-open .shell aside .sidebar-close{top:10px}.menu-open .shell aside footer .designer{display:none}}
 @media(max-width:420px){.topbar #mobile-menu{font-size:0;width:42px;justify-content:center}.topbar #mobile-menu:before{content:'☰';font-size:20px}.mobile-brand.brand-home{font-size:18px}.topbar .header-tools{gap:3px}.topbar #mobile-search-toggle{padding:6px}.topbar #notifications{padding:6px}.shell aside nav{scrollbar-gutter:auto}}
+
+/* Image-led banner preserves embedded lettering at every orientation. */
+.welcome-banner.image-welcome-banner{display:block;padding:0;min-height:0;gap:0;background:#102536;border:1px solid #637a88;border-radius:22px;overflow:hidden;margin-bottom:24px;box-shadow:0 10px 30px #0002}
+.welcome-banner-image{display:block;width:100%;height:auto;max-height:none;object-fit:contain}
+@media(max-width:700px){.welcome-banner.image-welcome-banner{border-radius:16px;margin-bottom:20px}}
