@@ -1,4 +1,4 @@
-const CACHE='ltmclass-shell-v14';
+const CACHE='ltmclass-shell-v15';
 const ASSETS=['/cinematic.css','/images/classroom-cinematic.webp','/images/learning-studio.svg','/','/index.html','/style.css','/app.js','/teaching-ui.js','/operations-ui.js','/schedule-ui.js','/account-ui.js','/design-ui.js','/reference.css','/glass.css','/auth-ui.js','/motion.js','/motion.css','/icon.svg','/manifest.webmanifest'];
 self.addEventListener('install',event=>{event.waitUntil(caches.open(CACHE).then(cache=>cache.addAll(ASSETS)));self.skipWaiting();});
 self.addEventListener('activate',event=>event.waitUntil(caches.keys().then(keys=>Promise.all(keys.filter(k=>k!==CACHE).map(k=>caches.delete(k)))).then(()=>self.clients.claim())));
