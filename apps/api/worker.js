@@ -1,3 +1,4 @@
+import {joinCodes} from './join-codes.js';
 import {recover,recoverySettings,makeRecoveryCode,recoveryHash} from './recovery.js';
 import {account,announcements} from './accounts.js';
 import {redeemAssistant,manageAssistants,assistantRequest} from './assistants.js';
@@ -42,6 +43,8 @@ async function api(req,env){
  const tenants=await all(db,'SELECT t.id,t.name,m.role FROM tenants t JOIN members m ON t.id=m.tenant_id WHERE m.user_id=?',session.id);
  if(path==='/auth/me'&&req.method==='GET')return json({user:session,tenants});
  const tenant=url.searchParams.get('tenant');
+ if(['/learning/join','/family/join'].includes(path)&&write)await limited(db,'join:'+session.id,10);
+ const joined=await joinCodes(req,db,path,body,session,tenant,tenants);if(joined)return joined;
  if(write&&['/account','/account/password','/account/recovery'].includes(path))await limited(db,'account:'+session.id,10);
  const recoveryResult=await recoverySettings(req,db,path,body,session);if(recoveryResult)return recoveryResult;
  const accountResult=await account(req,db,path,body,session,tenant);if(accountResult)return accountResult;

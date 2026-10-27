@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import {DatabaseSync} from 'node:sqlite';
 import {readFileSync} from 'node:fs';
 import worker from '../apps/api/worker.js';
-function database(){const sql=new DatabaseSync(':memory:');for(const file of ['0001_core.sql','0002_teaching.sql','0003_family_operations.sql','0004_assistants.sql','0005_notification_updates.sql','0006_material_links.sql','0007_lesson_overlap.sql','0008_accounts_announcements.sql','0009_assignment_drive_link.sql','0010_roles_recovery.sql'])sql.exec(readFileSync('db/migrations/'+file,'utf8'));return {prepare(query){let values=[];const stmt={bind(...args){values=args;return stmt;},async first(){return sql.prepare(query).get(...values)||null;},async all(){return {results:sql.prepare(query).all(...values)};},async run(){const result=sql.prepare(query).run(...values);return {meta:{changes:Number(result.changes)}};}};return stmt;},async batch(statements){sql.exec('BEGIN');try{const results=[];for(const stmt of statements)results.push(await stmt.run());sql.exec('COMMIT');return results;}catch(e){sql.exec('ROLLBACK');throw e;}}};}
+function database(){const sql=new DatabaseSync(':memory:');for(const file of ['0001_core.sql','0002_teaching.sql','0003_family_operations.sql','0004_assistants.sql','0005_notification_updates.sql','0006_material_links.sql','0007_lesson_overlap.sql','0008_accounts_announcements.sql','0009_assignment_drive_link.sql','0010_roles_recovery.sql','0011_class_join_codes.sql'])sql.exec(readFileSync('db/migrations/'+file,'utf8'));return {prepare(query){let values=[];const stmt={bind(...args){values=args;return stmt;},async first(){return sql.prepare(query).get(...values)||null;},async all(){return {results:sql.prepare(query).all(...values)};},async run(){const result=sql.prepare(query).run(...values);return {meta:{changes:Number(result.changes)}};}};return stmt;},async batch(statements){sql.exec('BEGIN');try{const results=[];for(const stmt of statements)results.push(await stmt.run());sql.exec('COMMIT');return results;}catch(e){sql.exec('ROLLBACK');throw e;}}};}
 test('teacher workflow, isolation, attendance and payment reconciliation',async()=>{
  const DB=database();let cookie='',tenant='';
  async function call(path,body,method){const response=await worker.fetch(new Request('https://ltm.test/api/v1'+path+(tenant?(path.includes('?')?'&':'?')+'tenant='+tenant:''),{method:method||(body?'POST':'GET'),headers:{Origin:'https://ltm.test','Content-Type':'application/json',Cookie:cookie},body:body?JSON.stringify(body):undefined}),{DB});const content=await response.json();return {status:response.status,content,cookie:response.headers.get('Set-Cookie')};}
@@ -160,4 +160,25 @@ test('role-based registration creates workspaces only for teachers; recovery is 
  assert.equal((await call('/auth/recover',{email:'role-teacher@test.com',recovery_code:code,new_password:'another password 123'})).status,400);
  cookie='';assert.equal((await call('/auth/login',{email:'role-teacher@test.com',password:'original password 123'})).status,401);r=await call('/auth/login',{email:'role-teacher@test.com',password:'changed password 123'});assert.equal(r.status,200);cookie=r.cookie.split(';')[0];tenant=school;assert.equal((await call('/overview')).content.classes[0].id,cls);
  cookie=studentCookie;assert.equal((await call('/learn/overview')).status,200);
+});
+test('shared class codes enroll students once and private student codes link guardians',async()=>{
+ const DB=database();let cookie='',tenant='';
+ async function call(path,body){const r=await worker.fetch(new Request('https://ltm.test/api/v1'+path+(tenant?'?tenant='+tenant:''),{method:body?'POST':'GET',headers:{Origin:'https://ltm.test','Content-Type':'application/json',Cookie:cookie},body:body?JSON.stringify(body):undefined}),{DB});return {status:r.status,content:await r.json(),cookie:r.headers.get('Set-Cookie')};}
+ async function register(type,email){cookie='';tenant='';const r=await call('/auth/register',{account_type:type,email,password:'secure password 123',name:type,workspace:'School'});cookie=r.cookie.split(';')[0];return cookie;}
+ const owner=await register('teacher','join-teacher@test.com');tenant=(await call('/auth/me')).content.tenants[0].id;const school=tenant;
+ const c=(await call('/classes',{name:'Class A'})).content.id,c2=(await call('/classes',{name:'Class B'})).content.id;
+ const classCode=(await call('/class-code',{class_id:c})).content.code;assert.ok(classCode);assert.equal((await call('/class-code',{class_id:c})).content.code,classCode);
+ const secondCode=(await call('/class-code',{class_id:c2})).content.code;
+ const student=await register('student','join-student@test.com');let r=await call('/learning/join',{code:classCode.toLowerCase()});assert.equal(r.status,200);const familyCode=r.content.student_code;assert.ok(familyCode);
+ assert.equal((await call('/learning/join',{code:classCode})).content.student_code,familyCode);assert.equal((await call('/learning/join',{code:secondCode})).status,200);
+ tenant=school;assert.equal((await call('/attendance',{lesson_id:'anything',records:[]})).status,403);assert.equal((await call('/class-code',{class_id:c})).status,403);
+ assert.equal((await call('/learning/student-code')).content.code,familyCode);
+ cookie=owner;r=await call('/overview');assert.equal(r.content.students.length,1);assert.equal(r.content.enrollments.length,2);
+ const rotated=(await call('/class-code',{class_id:c,rotate:true})).content.code;assert.notEqual(rotated,classCode);
+ cookie=student;assert.equal((await call('/learning/join',{code:classCode})).status,400);
+ const parent=await register('guardian','join-parent@test.com');assert.equal((await call('/family/join',{code:classCode})).status,400);assert.equal((await call('/family/join',{code:familyCode})).status,200);assert.equal((await call('/family/join',{code:familyCode})).status,200);let links=(await call('/family')).content;assert.equal(links.length,1);
+ assert.equal((await call('/learning/join',{code:rotated})).status,403);tenant=school;assert.equal((await call('/attendance',{lesson_id:'anything',records:[]})).status,403);
+ cookie=owner;await call('/guardians/revoke',{id:links[0].id});cookie=parent;assert.equal((await call('/family/join',{code:familyCode})).status,403);assert.equal((await call('/family')).content.length,0);
+ cookie=student;const next=(await call('/learning/student-code',{})).content.code;assert.notEqual(next,familyCode);
+ await register('guardian','join-parent2@test.com');assert.equal((await call('/family/join',{code:familyCode})).status,400);assert.equal((await call('/family/join',{code:next})).status,200);
 });

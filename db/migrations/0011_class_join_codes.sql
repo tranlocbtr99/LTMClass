@@ -1,0 +1,2 @@
+CREATE TABLE class_join_codes(tenant_id TEXT NOT NULL,class_id TEXT NOT NULL,code TEXT NOT NULL UNIQUE,PRIMARY KEY(tenant_id,class_id),FOREIGN KEY(tenant_id,class_id) REFERENCES classes(tenant_id,id));
+CREATE TABLE student_family_codes(tenant_id TEXT NOT NULL,student_id TEXT NOT NULL,code TEXT NOT NULL UNIQUE,PRIMARY KEY(tenant_id,student_id),FOREIGN KEY(tenant_id,student_id) REFERENCES students(tenant_id,id));
