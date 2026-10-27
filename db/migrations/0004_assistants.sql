@@ -1,0 +1,2 @@
+CREATE TABLE assistant_grants (tenant_id TEXT NOT NULL,user_id TEXT NOT NULL,class_id TEXT NOT NULL,PRIMARY KEY(tenant_id,user_id,class_id),FOREIGN KEY(tenant_id,user_id) REFERENCES members(tenant_id,user_id),FOREIGN KEY(tenant_id,class_id) REFERENCES classes(tenant_id,id));
+CREATE TABLE assistant_invites (token_hash TEXT PRIMARY KEY,tenant_id TEXT NOT NULL REFERENCES tenants(id),class_ids TEXT NOT NULL,expires_at INTEGER NOT NULL,used_at INTEGER);

@@ -24,6 +24,8 @@ For GitHub Actions, set `CLOUDFLARE_API_TOKEN` and `CLOUDFLARE_ACCOUNT_ID` as pr
 
 ## Status
 
-Initial foundation deployed: https://ltmclass.tranlocbtr99.workers.dev. This is not the finished full-scope product. See [current status](docs/status.md), [architecture](docs/architecture.md) and [implementation plan](docs/implementation-plan.md).
+Teacher, student, guardian and scoped assistant workflows deployed: https://ltmclass.tranlocbtr99.workers.dev. This is not the finished full-scope product. See [current status](docs/status.md), [architecture](docs/architecture.md) and [implementation plan](docs/implementation-plan.md).
 
 No credentials are included in source. Sessions use secure cookies; use Wrangler's local development handling or HTTPS outside localhost. Payments are manually recorded receipts, not a payment gateway.
+
+Teaching features include assignments, grading, question banks, timed exams, guardian views, in-app notifications, recurring schedules and reports. R2 uploads require the account owner to activate R2 first, then run the deployment helper with `--with-r2`. Email verification/recovery and full production release gates remain incomplete. See [release runbook](docs/release-runbook.md).
